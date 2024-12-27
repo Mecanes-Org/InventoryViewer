@@ -25,7 +25,7 @@ public class EditorInventoryViewer : ModuleRules
                 "ToolMenus",
                 "UnrealEd", 
                 "ApplicationCore",
-                "ProInventorySystem"
+                "ProInventorySystem",
             }
         );
     }

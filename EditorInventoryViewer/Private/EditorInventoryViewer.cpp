@@ -13,20 +13,19 @@
 #include "LevelEditor.h"
 */
 
+//MY ICON
 
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/SWindow.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Widgets/Input/SButton.h"
-
+//#include "Widgets/Input/SButton.h"
 
 #define LOCTEXT_NAMESPACE "FEditorInventoryViewerModule"
 
 void FEditorInventoryViewerModule::StartupModule()
 {
-
 	// Vérifier si le plugin principal est actif
 	if (!FModuleManager::Get().IsModuleLoaded("ProInventorySystem"))
 	{
@@ -43,6 +42,7 @@ void FEditorInventoryViewerModule::StartupModule()
 		FCanExecuteAction()
 	);
 
+	
 	// Enregistrez les menus
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FEditorInventoryViewerModule::RegisterMenus));
 }
@@ -79,7 +79,7 @@ void FEditorInventoryViewerModule::RegisterMenus()
 			LOCTEXT("InventoryViewer_ToolTip", "Inventory viewer"),    // Tooltip
 			FNewMenuDelegate::CreateRaw(this, &FEditorInventoryViewerModule::AddMenus), // Contenu
 			false,                                                  // Ne pas épingler
-			FSlateIcon(FAppStyle::GetAppStyleSetName(), "PropertyWindow.Button_PickAsset") // Icône du sous-menu
+			FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Viewports") // Icône du sous-menu
 		);
 	}
 
@@ -88,7 +88,8 @@ void FEditorInventoryViewerModule::RegisterMenus()
 
 		// Ajouter un bouton avec une icône personnalisée à la barre d'outils
 		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
-		FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("WindowLayout");
+		//FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("WindowLayout");
+		FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("PluginTools");
 		
 		
 		// Ajouter une entrée avec une icône personnalisée
@@ -98,7 +99,7 @@ void FEditorInventoryViewerModule::RegisterMenus()
 			FOnGetContent::CreateRaw(this, &FEditorInventoryViewerModule::GenerateDropdownMenu), // Fonction pour générer le menu
 			LOCTEXT("InventoryViewer_Label", "Inventory Viewer"),     // Nom affiché sur le bouton
 			LOCTEXT("InventoryViewer_ToolTip", "Inventory viewer"), // Info-bulle
-			FSlateIcon(FAppStyle::GetAppStyleSetName(), "PropertyWindow.Button_PickAsset") // Icône personnalisée
+			FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Viewports") // Icône personnalisée
 		));
 	}
 }

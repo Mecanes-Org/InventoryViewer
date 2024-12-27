@@ -18,7 +18,6 @@ private:
     TSharedRef<SWidget> GenerateDropdownMenu();
     void AddMenus(FMenuBuilder& MenuBuilder);
 
-
     void OnDashboard();
     void OnView();
     void OnDoc();
