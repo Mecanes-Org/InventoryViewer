@@ -256,40 +256,7 @@ void FEditorInventoryViewerModule::OnDashboard()
 
 void FEditorInventoryViewerModule::OnView()
 {
-	//FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("View", "It will be available soon !"));
-
-	// Créez une nouvelle fenêtre
-	TSharedRef<SWindow> CustomWindow = SNew(SWindow)
-		.Title(FText::FromString(TEXT("Fenêtre Personnalisée")))  // Titre de la fenêtre
-		.ClientSize(FVector2D(1000, 700))  // Taille de la fenêtre
-		.IsPopupWindow(false)  // Cette fenêtre est une fenêtre contextuelle
-		.SupportsMinimize(false)
-		.AutoCenter(EAutoCenter::None)
-		.SupportsMaximize(true);
-
-	// Ajouter des widgets personnalisés à la fenêtre
-	CustomWindow->SetContent(
-		SNew(SVerticalBox)  // Conteneur vertical
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(STextBlock)  // Un simple texte
-			.Text(FText::FromString(TEXT("Bienvenue dans ma fenêtre personnalisée !")))
-		]
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SButton)  // Un bouton qui ferme la fenêtre
-			.Text(FText::FromString(TEXT("Fermer")))
-			.OnClicked_Lambda([CustomWindow]() -> FReply {
-				CustomWindow->RequestDestroyWindow();  // Ferme la fenêtre lorsque le bouton est cliqué
-				return FReply::Handled();
-			})
-		]
-	);
-
-	// Afficher la fenêtre dans l'application
-	FSlateApplication::Get().AddWindow(CustomWindow);
+	FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("View", "It will be available soon !"));
 }
 
 void FEditorInventoryViewerModule::OnDoc()
