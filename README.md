@@ -44,7 +44,6 @@ Its main goal is to allow developers and end-users to monitor and interact with 
 ![Structure Infos](https://github.com/Mecanes/Images/blob/main/1.png)
 
 ## Advantages and uses
-***Advantage*** :
 
 * **Speed**: Instant visualization of inventory changes.
 * **Clarity**: An intuitive and easy-to-use user interface.
