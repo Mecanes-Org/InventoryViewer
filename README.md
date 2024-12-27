@@ -39,7 +39,7 @@ Its main goal is to allow developers and end-users to monitor and interact with 
 - Go to Edit > Plugins.
 - Go to your unreal project
 - **Plugins > ProInventorySystem > Source**
-- Paste the ‘EditorInventoryViewer’ folder
+- Paste the **EditorInventoryViewer** folder
 
 ![Structure Infos](https://github.com/Mecanes/Images/blob/main/1.png)
 
