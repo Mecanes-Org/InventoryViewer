@@ -29,7 +29,7 @@ Its main goal is to allow developers and end-users to monitor and interact with 
 **Pro Inventory System** already installed and configured.
 
 ## Warning
-
+- This module will be usable from **28/12/2024**.
 - This module is designed to work exclusively with Pro Inventory System.
 
 ## Installation
