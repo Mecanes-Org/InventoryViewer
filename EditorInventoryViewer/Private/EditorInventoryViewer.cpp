@@ -225,6 +225,30 @@ void FEditorInventoryViewerModule::AddMenus(FMenuBuilder& MenuBuilder)
 				.HAlign(HAlign_Left)
 				[
 					SNew(STextBlock)
+					.Margin(FMargin(10, 0, 0, 5)) // Espacement à droite
+					.Text(LOCTEXT("ViewLabel", "View"))
+					.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))) // Texte avec opacité
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth() // Le second texte prend uniquement l'espace nécessaire
+				.HAlign(HAlign_Right)
+				[
+					SNew(STextBlock)
+					.Margin(FMargin(0, 0, 10, 5)) // Espacement inférieur
+					.Text(LOCTEXT("ViewVersionLabel", "v0.0.1"))
+					.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))) // Texte avec opacité
+				]
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Fill) // Remplir horizontalement pour permettre un alignement correct
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f) // Le premier texte occupe tout l'espace restant
+				.HAlign(HAlign_Left)
+				[
+					SNew(STextBlock)
 					.Margin(FMargin(10, 0, 0, 0)) // Espacement à droite
 					.Text(LOCTEXT("InventoryViewerVersionLabel", "Inventory Viewer"))
 					.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))) // Texte avec opacité
