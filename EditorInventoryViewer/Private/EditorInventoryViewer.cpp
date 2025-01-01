@@ -1,4 +1,4 @@
-﻿// Copyright 2024,  Mecanes . All Rights Reserved.
+﻿// Copyright 2025,  Mecanes . All Rights Reserved.
 
 #include "EditorInventoryViewer.h"
 
@@ -7,31 +7,33 @@
 #include "ToolMenus.h"
 #include "MyCommands.h" // Classe des commandes personnalisées
 #include "ToolMenuSection.h"
-#include "ToolMenuEntry.h"\
-/*
-#include "EditorStyleSet.h"
-#include "LevelEditor.h"
-*/
-
-//MY ICON
+#include "ToolMenuEntry.h"
 
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/SWindow.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
-//#include "Widgets/Input/SButton.h"
+
+//MODULE
+#include "Editor.h"
+#include "Engine/World.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
 
 #define LOCTEXT_NAMESPACE "FEditorInventoryViewerModule"
+// Vous devez enregistrer cet événement
+
 
 void FEditorInventoryViewerModule::StartupModule()
 {
+	
 	// Vérifier si le plugin principal est actif
 	if (!FModuleManager::Get().IsModuleLoaded("ProInventorySystem"))
 	{
 		return;
 	}
-	
+
+	/*
 	// Enregistrez les commandes
 	FMyCommands::Register();
 	PluginCommands = MakeShareable(new FUICommandList);
@@ -42,6 +44,7 @@ void FEditorInventoryViewerModule::StartupModule()
 		FCanExecuteAction()
 	);
 
+	*/
 	
 	// Enregistrez les menus
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FEditorInventoryViewerModule::RegisterMenus));
@@ -52,6 +55,8 @@ void FEditorInventoryViewerModule::ShutdownModule()
 	UToolMenus::UnRegisterStartupCallback(this);
 	UToolMenus::UnregisterOwner(this);
 	FMyCommands::Unregister();
+
+	FEditorDelegates::PostPIEStarted.RemoveAll(this);
 }
 
 void FEditorInventoryViewerModule::RegisterMenus()
@@ -108,9 +113,12 @@ void FEditorInventoryViewerModule::RegisterMenus()
 
 void FEditorInventoryViewerModule::PluginButtonClicked()
 {
+	/*
 	FText Message = LOCTEXT("Click", "Active");
 	FMessageDialog::Open(EAppMsgType::Ok, Message);
+	*/
 }
+
 
 TSharedRef<SWidget> FEditorInventoryViewerModule::GenerateDropdownMenu()
 {
@@ -235,7 +243,7 @@ void FEditorInventoryViewerModule::AddMenus(FMenuBuilder& MenuBuilder)
 				[
 					SNew(STextBlock)
 					.Margin(FMargin(0, 0, 10, 5)) // Espacement inférieur
-					.Text(LOCTEXT("ViewVersionLabel", "v0.0.1"))
+					.Text(LOCTEXT("ViewVersionLabel", "v0.0.2"))
 					.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))) // Texte avec opacité
 				]
 			]
@@ -281,8 +289,31 @@ void FEditorInventoryViewerModule::OnDashboard()
 
 void FEditorInventoryViewerModule::OnView()
 {
-	FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("View", "It will be available soon !"));
+	//FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("View", "It will be available soon !"));
+
+	TSharedRef<SWindow> ViewWindow = SNew(SWindow)
+		.Title(FText::FromString(TEXT("VIEW")))
+		.ClientSize(FVector2D(1000, 600))
+		.SupportsMaximize(false)
+		.SupportsMinimize(false)
+		.SizingRule(ESizingRule::FixedSize)
+		[
+			SNew(SEditorViewWindow)
+		];
+
+	// Mémoriser une référence à la fenêtre si nécessaire
+	Widget = StaticCastSharedRef<SEditorViewWindow>(ViewWindow->GetContent());
+	Widget->Set_WindowHandle(ViewWindow);
+	
+	FSlateApplication::Get().AddWindow(ViewWindow);
 }
+
+
+void FEditorInventoryViewerModule::OnUpdateWindow()
+{
+	UE_LOG(LogTemp, Warning, TEXT("OnUpdateWindow"));
+}
+
 
 void FEditorInventoryViewerModule::OnDoc()
 {
@@ -309,28 +340,6 @@ void FEditorInventoryViewerModule::OnWebsite()
 	// Ouvrir le lien dans le navigateur par défaut
 	FPlatformProcess::LaunchURL(*Link_Website, nullptr, nullptr);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #undef LOCTEXT_NAMESPACE

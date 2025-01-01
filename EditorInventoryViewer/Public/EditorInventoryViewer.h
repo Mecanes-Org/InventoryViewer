@@ -1,8 +1,9 @@
-﻿// Copyright 2024,  Mecanes . All Rights Reserved.
+﻿// Copyright 2025,  Mecanes . All Rights Reserved.
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EditorViewWindow.h"
 #include "Modules/ModuleManager.h"
 
 class FEditorInventoryViewerModule : public IModuleInterface
@@ -17,14 +18,17 @@ private:
 
     TSharedRef<SWidget> GenerateDropdownMenu();
     void AddMenus(FMenuBuilder& MenuBuilder);
+    void OnUpdateWindow();
 
+    
     void OnDashboard();
     void OnView();
     void OnDoc();
     void OnDocFR();
     void OnDiscord();
     void OnWebsite();
-    
+
+    TSharedPtr<SEditorViewWindow> Widget;
     TSharedPtr<FUICommandList> PluginCommands;
 
     FString Link_EN_Doc = TEXT("https://docs.google.com/document/d/1w9rfn3r3VupmIiWL5DZvSWVL0J2-YafrEuMUIPjQqdI/edit?tab=t.0");

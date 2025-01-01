@@ -1,8 +1,8 @@
 ﻿using UnrealBuildTool;
 
-public class EditorInventoryViewer : ModuleRules
+public class EditorView : ModuleRules
 {
-    public EditorInventoryViewer(ReadOnlyTargetRules Target) : base(Target)
+    public EditorView(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -11,6 +11,7 @@ public class EditorInventoryViewer : ModuleRules
             {
                 "Core",
                 "InputCore",
+                "ProInventorySystem"
             }
         );
 
@@ -22,11 +23,8 @@ public class EditorInventoryViewer : ModuleRules
                 "Slate",
                 "SlateCore",
                 "EditorStyle",
-                "ToolMenus",
-                "UnrealEd", 
-                "ApplicationCore",
-                "ProInventorySystem",
-                "EditorView"
+                "UnrealEd"
+                
             }
         );
     }
