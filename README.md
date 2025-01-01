@@ -68,5 +68,6 @@ Its main goal is to allow developers and end-users to monitor and interact with 
 
 ## History
 
+- [x] [1/1/2025] v0.0.1.5 : Collect players' bags at launch
 - [x] [27/12/2024] Current version: General optimizations and extended compatibility with Pro Inventory System.
 - [x] [27/12/2024] Creation of official documentation
