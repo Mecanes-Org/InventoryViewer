@@ -243,7 +243,7 @@ void FEditorInventoryViewerModule::AddMenus(FMenuBuilder& MenuBuilder)
 				[
 					SNew(STextBlock)
 					.Margin(FMargin(0, 0, 10, 5)) // Espacement inférieur
-					.Text(LOCTEXT("ViewVersionLabel", "v0.0.2"))
+					.Text(LOCTEXT("ViewVersionLabel", "v0.1.0"))
 					.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))) // Texte avec opacité
 				]
 			]

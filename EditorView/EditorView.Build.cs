@@ -11,7 +11,8 @@ public class EditorView : ModuleRules
             {
                 "Core",
                 "InputCore",
-                "ProInventorySystem"
+                "ProInventorySystem", 
+                "Slate"
             }
         );
 
@@ -20,7 +21,6 @@ public class EditorView : ModuleRules
             {
                 "CoreUObject",
                 "Engine",
-                "Slate",
                 "SlateCore",
                 "EditorStyle",
                 "UnrealEd"
