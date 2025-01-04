@@ -13,6 +13,7 @@ The Inventory Viewer module is a tool designed to enhance the user experience fo
 * [License](#License)
 * [Author](#Author)
 * [History](#History)
+* [Youtube](https://youtu.be/CEC2i3QYFx4?si=GS6zGBipOMEEpp_2)
 
 ## Description
 
