@@ -243,7 +243,7 @@ void FEditorInventoryViewerModule::AddMenus(FMenuBuilder& MenuBuilder)
 				[
 					SNew(STextBlock)
 					.Margin(FMargin(0, 0, 10, 5)) // Espacement inférieur
-					.Text(LOCTEXT("ViewVersionLabel", "v0.1.0"))
+					.Text(LOCTEXT("ViewVersionLabel", "v0.1.1"))
 					.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))) // Texte avec opacité
 				]
 			]
@@ -267,7 +267,7 @@ void FEditorInventoryViewerModule::AddMenus(FMenuBuilder& MenuBuilder)
 				[
 					SNew(STextBlock)
 					.Margin(FMargin(0, 0, 10, 5)) // Espacement inférieur
-					.Text(LOCTEXT("InventoryViewerVersionLabel", "v0.0.1"))
+					.Text(LOCTEXT("InventoryViewerVersionLabel", "v0.1.0"))
 					.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))) // Texte avec opacité
 				]
 			],
@@ -306,12 +306,6 @@ void FEditorInventoryViewerModule::OnView()
 	Widget->Set_WindowHandle(ViewWindow);
 	
 	FSlateApplication::Get().AddWindow(ViewWindow);
-}
-
-
-void FEditorInventoryViewerModule::OnUpdateWindow()
-{
-	UE_LOG(LogTemp, Warning, TEXT("OnUpdateWindow"));
 }
 
 
