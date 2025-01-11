@@ -3,25 +3,22 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Widgets/SCompoundWidget.h"
-#include "Widgets/Views/SListView.h"
 
 //WORLD
 #include "GameFramework/Actor.h"
-/**
- * 
- */
+#include "Engine/World.h"
 
 //WIDGET
-#include "Widgets/SCompoundWidget.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Widgets/Images/SImage.h"
-#include "Widgets/Input/SButton.h"
-#include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/SCompoundWidget.h"
 
 //BAG
 #include "ProInventorySystem/Public/AC_ItemsBag.h"
 #include "Widgets/Layout/SWrapBox.h"
+
+//TIMER
+#include "HAL/PlatformTime.h"
+#include "HAL/PlatformApplicationMisc.h"
 
 class EDITORVIEW_API SEditorViewWindow : public SCompoundWidget
 {
@@ -31,7 +28,13 @@ public:
 
 	/** Constructeur de la fenêtre */
 	void Construct(const FArguments& InArgs);
+
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+
+
+	//FUNCTION
 	void GameStart();
+	void AfterGameStart();
 
 	
 	void Set_WindowHandle(TSharedRef<SWindow> InWindowHandle);
@@ -46,12 +49,21 @@ public:
 	/** Fermer la fenêtre */
 	void CloseWindow();
 	void UpdateItemOfBag(UAC_ItemsBag* bag);
+	void UpdateWindow(bool bAutomaticUpdate);
+
+	//TIMER
+	void StartTimer();
 
 private:
+	/** Timer interval in seconds */
+	float TimerInterval = 5.0f;
+	/** Accumulated time since the last timer trigger */
+	float TimeSinceLastTick = 0.0f;
+	
+	bool bAutomaticUpdate = false;
+	
 	TSharedRef<SWidget> CreateButtonBag(UAC_ItemsBag* bag);
 	TSharedRef<SWidget> CreateButtonItem(FS_Item Item);
-
-	
 	
 	AActor *current_actor;
 	UWorld* CurrentWorld;

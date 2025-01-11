@@ -59,6 +59,7 @@ void FEditorInventoryViewerModule::ShutdownModule()
 	FEditorDelegates::PostPIEStarted.RemoveAll(this);
 }
 
+
 void FEditorInventoryViewerModule::RegisterMenus()
 {
 	FToolMenuOwnerScoped OwnerScoped(this);
@@ -194,8 +195,37 @@ void FEditorInventoryViewerModule::AddMenus(FMenuBuilder& MenuBuilder)
 	}
 	MenuBuilder.EndSection();
 
-	// Catégorie 4
-	MenuBuilder.BeginSection("Infos", LOCTEXT("InfosHeader", "Infos"));
+
+	// Catégorie 3 - Checked box
+	MenuBuilder.BeginSection("Settings", LOCTEXT("SettingsHeader", "Settings"));
+	{
+		MenuBuilder.AddSubMenu(
+		LOCTEXT("InventoryViewer_SettingsLabel", "Settings"),
+		LOCTEXT("InventoryViewer_SettingsTooltip", "Settings"),
+		FNewMenuDelegate::CreateLambda([this](FMenuBuilder& SubMenuBuilder)
+			{
+				// Checkbox entry
+				SubMenuBuilder.AddMenuEntry(
+					LOCTEXT("InventoryViewer_AutomaticUpdateLabel", "Automatic Update"),
+					LOCTEXT("InventoryViewer_AutomaticUpdateTooltip", "Automatic Update"),
+					FSlateIcon(), // Optional icon
+					FUIAction(
+						FExecuteAction::CreateRaw(this, &FEditorInventoryViewerModule::OnToggleFeature),
+						FCanExecuteAction(),
+						FIsActionChecked::CreateRaw(this, &FEditorInventoryViewerModule::IsFeatureEnabled)
+					),
+					NAME_None,
+					EUserInterfaceActionType::ToggleButton
+				);
+			})
+		);
+
+		
+	}
+	MenuBuilder.EndSection();
+
+	// Version
+	MenuBuilder.BeginSection("Versions", LOCTEXT("VersionsHeader", "Versions"));
 	{
 		MenuBuilder.AddWidget(
 			SNew(SVerticalBox)
@@ -267,7 +297,7 @@ void FEditorInventoryViewerModule::AddMenus(FMenuBuilder& MenuBuilder)
 				[
 					SNew(STextBlock)
 					.Margin(FMargin(0, 0, 10, 5)) // Espacement inférieur
-					.Text(LOCTEXT("InventoryViewerVersionLabel", "v0.1.0"))
+					.Text(LOCTEXT("InventoryViewerVersionLabel", "v0.1.1"))
 					.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))) // Texte avec opacité
 				]
 			],
@@ -333,6 +363,25 @@ void FEditorInventoryViewerModule::OnWebsite()
 
 	// Ouvrir le lien dans le navigateur par défaut
 	FPlatformProcess::LaunchURL(*Link_Website, nullptr, nullptr);
+}
+
+void FEditorInventoryViewerModule::OnToggleFeature()
+{
+	bAutomaticUpdate = !bAutomaticUpdate; // Toggle the feature state
+	
+	if (Widget.IsValid()) // Vérifiez que le TSharedPtr est valide
+	{
+		if (bAutomaticUpdate)
+		{
+			Widget->UpdateWindow(bAutomaticUpdate);
+		}
+	}
+
+}
+
+bool FEditorInventoryViewerModule::IsFeatureEnabled() const
+{
+	return bAutomaticUpdate;
 }
 
 

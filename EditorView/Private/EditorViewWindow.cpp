@@ -9,123 +9,32 @@
 #include "ProInventorySystem/Public/BPFL_ProInventorySystem.h"
 #include "EngineUtils.h"
 #include "Widgets/Layout/SWrapBox.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SScrollBox.h"
 
 void SEditorViewWindow::Construct(const FArguments& InArgs)
 {
-	GameStart();
 	
 	//UE_LOG(LogTemp, Warning, TEXT("Construct"));
 	//VIEW
+	GameStart();
 	
-	ChildSlot[
-	SNew(SCanvas)
-	+ SCanvas::Slot()
-	.HAlign(HAlign_Fill)
-	.VAlign(VAlign_Fill)
-	.Size(FVector2D(1000, 600))
-	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(0.0f, 0.0f, 5.0f, 0.0f)
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill) // Permet au slot de remplir la hauteur disponible
-		[
-			SNew(SBorder)
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill) // Assure l'extension du border pour remplir la hauteur
-			.Padding(3)
-			.BorderBackgroundColor(FLinearColor::White)
-			[
-				SNew(SScrollBox)
-				.ScrollBarVisibility(EVisibility::Visible)
-				+ SScrollBox::Slot()
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Fill) // S'assure que le ScrollBox s'étend également sur toute la hauteur
-				[
-					SAssignNew(ScrollBoxContentLeft, SVerticalBox)
-				]
-			]
-		]
-		+ SHorizontalBox::Slot()
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill) // Le deuxième slot remplit également toute la hauteur disponible
-		[
-			SNew(SBorder) // On utilise un SBorder pour harmoniser le rendu et bien encapsuler l'image
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			.Padding(3) // Espacement entre le bord et le contenu
-			.BorderBackgroundColor(FLinearColor::White) // Couleur d'arrière-plan optionnelle
-			[
-				SNew(SScrollBox)
-				.ScrollBarVisibility(EVisibility::Visible)
-				.Orientation(Orient_Vertical)
-				+ SScrollBox::Slot()
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Fill)// S'assure que le ScrollBox s'étend également sur toute la hauteur
-				[
-					SAssignNew(SWrapBoxRight, SWrapBox)
-					.UseAllottedWidth(true)
-					.HAlign(HAlign_Center)
-				]
-				
-			]
-		]
-	]
-	];
-	
+}
 
-	if (ScrollBoxContentLeft.IsValid())
+void SEditorViewWindow::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	
+	TimeSinceLastTick += InDeltaTime;
+	
+	if (TimeSinceLastTick >= TimerInterval && bAutomaticUpdate)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("ScrollBoxContentLeft"));
-		
-		if (ArrayAc_ItemsBag.Num() > 1)
-		{
-			for (UAC_ItemsBag* bag : ArrayAc_ItemsBag)
-			{
-				ScrollBoxContentLeft->AddSlot()
-				.Padding(5) // Espacement entre les widgets
-				.HAlign(HAlign_Center) // Alignement horizontal
-				.VAlign(VAlign_Center) // Alignement vertical
-				[
-					CreateButtonBag(bag) 
-				];
-			}
+		StartTimer();
 
-			AC_ItemsBag = ArrayAc_ItemsBag[0];
-			
-		}
-		else if (ArrayAc_ItemsBag.Num() == 1)
-		{
-			//UE_LOG(LogTemp, Warning, TEXT("ArrayAc_ItemsBag.Num() == 1"));
-			ScrollBoxContentLeft->AddSlot()
-				.Padding(5) // Espacement entre les widgets
-				.HAlign(HAlign_Center) // Alignement horizontal
-				.VAlign(VAlign_Center) // Alignement vertical
-				[
-					CreateButtonBag(AC_ItemsBag) 
-				];
-
-			AC_ItemsBag = ArrayAc_ItemsBag[0];
-		}
-		else
-		{
-			//UE_LOG(LogTemp, Warning, TEXT("ArrayAc_ItemsBag.Num() == 0"));
-			ScrollBoxContentLeft->AddSlot()
-			.Padding(5) // Espacement entre les widgets
-			.HAlign(HAlign_Center) // Alignement horizontal
-			.VAlign(VAlign_Center) // Alignement vertical
-			[
-				CreateButtonBag(NULL) 
-			];
-		}
-		
+		TimeSinceLastTick = 0;
 	}
-
-	//AFFICHE TOUTES LES ITEMS D UN SAC
-	ShowAllItems(AC_ItemsBag);
-	
-	
 }
 
 void SEditorViewWindow::ShowAllItems(UAC_ItemsBag* Bag)
@@ -218,12 +127,130 @@ void SEditorViewWindow::ShowAllItems(UAC_ItemsBag* Bag)
 
 void SEditorViewWindow::GameStart()
 {
+	//Invalidate(EInvalidateWidget::Layout);
+	
 	if (IsValidWorld(GetWorld()) )
 	{
 		ActorFromComponent();
 		//UE_LOG(LogTemp, Warning, TEXT("GameStart"));
 	}
 
+	//After Game start
+	AfterGameStart();
+
+}
+
+void SEditorViewWindow::AfterGameStart()
+{
+	
+	ChildSlot[
+	SNew(SCanvas)
+	+ SCanvas::Slot()
+	.HAlign(HAlign_Fill)
+	.VAlign(VAlign_Fill)
+	.Size(FVector2D(1000, 600))
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(0.0f, 0.0f, 5.0f, 0.0f)
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Fill) // Permet au slot de remplir la hauteur disponible
+		[
+			SNew(SBorder)
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill) // Assure l'extension du border pour remplir la hauteur
+			.Padding(3)
+			.BorderBackgroundColor(FLinearColor::White)
+			[
+				SNew(SScrollBox)
+				.ScrollBarVisibility(EVisibility::Visible)
+				+ SScrollBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill) // S'assure que le ScrollBox s'étend également sur toute la hauteur
+				[
+					SAssignNew(ScrollBoxContentLeft, SVerticalBox)
+				]
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Fill) // Le deuxième slot remplit également toute la hauteur disponible
+		[
+			SNew(SBorder) // On utilise un SBorder pour harmoniser le rendu et bien encapsuler l'image
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			.Padding(3) // Espacement entre le bord et le contenu
+			.BorderBackgroundColor(FLinearColor::White) // Couleur d'arrière-plan optionnelle
+			[
+				SNew(SScrollBox)
+				.ScrollBarVisibility(EVisibility::Visible)
+				.Orientation(Orient_Vertical)
+				
+				+ SScrollBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)// S'assure que le ScrollBox s'étend également sur toute la hauteur
+				[
+					SAssignNew(SWrapBoxRight, SWrapBox)
+					.UseAllottedWidth(true)
+					.HAlign(HAlign_Center)
+				]
+				
+			]
+		]
+	]
+	];
+	
+
+	if (ScrollBoxContentLeft.IsValid())
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("ScrollBoxContentLeft"));
+		
+		if (ArrayAc_ItemsBag.Num() > 1)
+		{
+			for (UAC_ItemsBag* bag : ArrayAc_ItemsBag)
+			{
+				ScrollBoxContentLeft->AddSlot()
+				.Padding(5) // Espacement entre les widgets
+				.HAlign(HAlign_Center) // Alignement horizontal
+				.VAlign(VAlign_Center) // Alignement vertical
+				[
+					CreateButtonBag(bag) 
+				];
+			}
+
+			AC_ItemsBag = ArrayAc_ItemsBag[0];
+			
+		}
+		else if (ArrayAc_ItemsBag.Num() == 1)
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("ArrayAc_ItemsBag.Num() == 1"));
+			ScrollBoxContentLeft->AddSlot()
+				.Padding(5) // Espacement entre les widgets
+				.HAlign(HAlign_Center) // Alignement horizontal
+				.VAlign(VAlign_Center) // Alignement vertical
+				[
+					CreateButtonBag(AC_ItemsBag) 
+				];
+
+			AC_ItemsBag = ArrayAc_ItemsBag[0];
+		}
+		else
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("ArrayAc_ItemsBag.Num() == 0"));
+			ScrollBoxContentLeft->AddSlot()
+			.Padding(5) // Espacement entre les widgets
+			.HAlign(HAlign_Center) // Alignement horizontal
+			.VAlign(VAlign_Center) // Alignement vertical
+			[
+				CreateButtonBag(NULL) 
+			];
+		}
+		
+	}
+
+	//AFFICHE TOUTES LES ITEMS D UN SAC
+	ShowAllItems(AC_ItemsBag);
 }
 
 
@@ -384,12 +411,13 @@ TSharedRef<SWidget> SEditorViewWindow::CreateButtonBag(UAC_ItemsBag* bag)
 				SNew(SBorder)
 				.VAlign(VAlign_Fill)
 				.HAlign(HAlign_Fill)
-				.BorderBackgroundColor(FLinearColor::Red)
+				.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))
 				.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")) // Utilisation d'une brosse blanche par défaut
 				.Padding(4.0f, 2.0f)
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString(FString::Printf(TEXT("%i"), bag->ItemsBag.Num() )))
+					.ColorAndOpacity(FLinearColor::Black)
 				]
 			]
 
@@ -517,12 +545,13 @@ TSharedRef<SWidget> SEditorViewWindow::CreateButtonItem(FS_Item Item)
 			SNew(SBorder)
 			.VAlign(VAlign_Fill)
 			.HAlign(HAlign_Fill)
-			.BorderBackgroundColor(FLinearColor(0.0f, 0.0f, 1.0f, 0.5f))
+			.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))
 			.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")) // Utilisation d'une brosse blanche par défaut
 			.Padding(4.0f, 2.0f)
 			[
 				SNew(STextBlock)
 				.Text(FText::FromString(FString::Printf(TEXT("%i"), Item.Quantity )))
+				.ColorAndOpacity(FLinearColor::Black)
 			]
 		];
 		
@@ -534,4 +563,22 @@ void SEditorViewWindow::UpdateItemOfBag(UAC_ItemsBag* bag)
 	SWrapBoxRight->ClearChildren();
 
 	ShowAllItems(bag);
+}
+
+void SEditorViewWindow::UpdateWindow(bool bAutoUpdate)
+{
+	bAutomaticUpdate = bAutoUpdate;
+	
+	if (bAutomaticUpdate)
+	{
+		StartTimer();
+	}
+	
+	//UE_LOG(LogTemp, Warning, TEXT("XXXXXXXX"));
+}
+
+void SEditorViewWindow::StartTimer()
+{	
+	GameStart();
+	//UE_LOG(LogTemp, Warning, TEXT("Start Timer"));
 }
