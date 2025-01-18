@@ -192,7 +192,7 @@ void SEditorViewWindow::AfterGameStart()
 				.VAlign(VAlign_Fill)// S'assure que le ScrollBox s'étend également sur toute la hauteur
 				[
 					SAssignNew(SWrapBoxRight, SWrapBox)
-					.UseAllottedWidth(true)
+					.UseAllottedSize(true)
 					.HAlign(HAlign_Center)
 				]
 				
@@ -206,7 +206,7 @@ void SEditorViewWindow::AfterGameStart()
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("ScrollBoxContentLeft"));
 		
-		if (ArrayAc_ItemsBag.Num() > 1)
+		if (ArrayAc_ItemsBag.Num() > 0)
 		{
 			for (UAC_ItemsBag* bag : ArrayAc_ItemsBag)
 			{
@@ -221,19 +221,6 @@ void SEditorViewWindow::AfterGameStart()
 
 			AC_ItemsBag = ArrayAc_ItemsBag[0];
 			
-		}
-		else if (ArrayAc_ItemsBag.Num() == 1)
-		{
-			//UE_LOG(LogTemp, Warning, TEXT("ArrayAc_ItemsBag.Num() == 1"));
-			ScrollBoxContentLeft->AddSlot()
-				.Padding(5) // Espacement entre les widgets
-				.HAlign(HAlign_Center) // Alignement horizontal
-				.VAlign(VAlign_Center) // Alignement vertical
-				[
-					CreateButtonBag(AC_ItemsBag) 
-				];
-
-			AC_ItemsBag = ArrayAc_ItemsBag[0];
 		}
 		else
 		{
@@ -326,10 +313,6 @@ void SEditorViewWindow::ActorFromComponent()
 				}
 			}
 		}
-	}
-	else
-	{
-		//UE_LOG(LogTemp, Error, TEXT("Impossible de récupérer le monde actif!"));
 	}
 }
 

@@ -18,7 +18,6 @@
 //MODULE
 #include "Editor.h"
 #include "Engine/World.h"
-#include "Windows/AllowWindowsPlatformTypes.h"
 
 #define LOCTEXT_NAMESPACE "FEditorInventoryViewerModule"
 // Vous devez enregistrer cet événement
@@ -207,7 +206,7 @@ void FEditorInventoryViewerModule::AddMenus(FMenuBuilder& MenuBuilder)
 				// Checkbox entry
 				SubMenuBuilder.AddMenuEntry(
 					LOCTEXT("InventoryViewer_AutomaticUpdateLabel", "Automatic Update"),
-					LOCTEXT("InventoryViewer_AutomaticUpdateTooltip", "Automatic Update"),
+					LOCTEXT("InventoryViewer_AutomaticUpdateTooltip", "it is in the test phase and not yet optimized"),
 					FSlateIcon(), // Optional icon
 					FUIAction(
 						FExecuteAction::CreateRaw(this, &FEditorInventoryViewerModule::OnToggleFeature),
@@ -273,7 +272,7 @@ void FEditorInventoryViewerModule::AddMenus(FMenuBuilder& MenuBuilder)
 				[
 					SNew(STextBlock)
 					.Margin(FMargin(0, 0, 10, 5)) // Espacement inférieur
-					.Text(LOCTEXT("ViewVersionLabel", "v0.1.1"))
+					.Text(LOCTEXT("ViewVersionLabel", "v0.1.2"))
 					.ColorAndOpacity(FSlateColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))) // Texte avec opacité
 				]
 			]
