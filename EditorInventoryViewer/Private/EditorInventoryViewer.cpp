@@ -16,7 +16,10 @@
 #include "Widgets/Text/STextBlock.h"
 
 //MODULE
+#include "BPFL_ProInventorySystem.h"
+#include "AC_ItemsBag.h"
 #include "Editor.h"
+#include "EngineUtils.h"
 #include "Engine/World.h"
 
 #define LOCTEXT_NAMESPACE "FEditorInventoryViewerModule"
@@ -313,7 +316,132 @@ void FEditorInventoryViewerModule::AddMenus(FMenuBuilder& MenuBuilder)
 
 void FEditorInventoryViewerModule::OnDashboard()
 {
-	FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("Dashboard", "We are working on it "));
+	int32 TotalBags = 0;
+	int32 TotalItems = 0;
+	int32 TotalQuantity = 0;
+	int32 Added = 0;
+	int32 Removed = 0;
+	int32 Updated = 0;
+
+	if (GEditor && GEditor->PlayWorld)
+	{
+		for (TActorIterator<AActor> ActorItr(GEditor->PlayWorld); ActorItr; ++ActorItr)
+		{
+			AActor* Actor = *ActorItr;
+			if (!Actor)
+			{
+				continue;
+			}
+
+			TArray<UAC_ItemsBag*> Bags = UBPFL_ProInventorySystem::GetAllBags(Actor);
+
+			for (UAC_ItemsBag* Bag : Bags)
+			{
+				if (!Bag)
+				{
+					continue;
+				}
+
+				TotalBags++;
+				TotalItems += Bag->ItemsBag.Num();
+
+				Added += Bag->DashboardAddedCount;
+				Removed += Bag->DashboardRemovedCount;
+				Updated += Bag->DashboardUpdatedCount;
+
+				for (const FS_Item& Item : Bag->ItemsBag)
+				{
+					TotalQuantity += Item.Quantity;
+				}
+			}
+		}
+	}
+
+	TSharedRef<SWindow> DashboardWindow = SNew(SWindow)
+		.Title(FText::FromString("Inventory Dashboard"))
+		.ClientSize(FVector2D(600, 360))
+		.SupportsMaximize(false)
+		.SupportsMinimize(false)
+		[
+			SNew(SBorder)
+			.Padding(20)
+			.BorderBackgroundColor(FLinearColor(0.02f, 0.02f, 0.025f, 1.0f))
+			[
+				SNew(SVerticalBox)
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0, 0, 0, 20)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Inventory Dashboard"))
+					.Font(FCoreStyle::Get().GetFontStyle("BoldFont"))
+					.ColorAndOpacity(FLinearColor::White)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0, 0, 0, 10)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(FString::Printf(TEXT("Bags detected: %d"), TotalBags)))
+					.ColorAndOpacity(FLinearColor::White)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0, 0, 0, 10)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(FString::Printf(TEXT("Unique items: %d"), TotalItems)))
+					.ColorAndOpacity(FLinearColor::White)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0, 0, 0, 20)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(FString::Printf(TEXT("Total quantity: %d"), TotalQuantity)))
+					.ColorAndOpacity(FLinearColor::White)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.Padding(5)
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString(FString::Printf(TEXT("Added: %d"), Added)))
+						.ColorAndOpacity(FLinearColor(0.2f, 1.0f, 0.4f, 1.0f))
+					]
+
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.Padding(5)
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString(FString::Printf(TEXT("Removed: %d"), Removed)))
+						.ColorAndOpacity(FLinearColor(1.0f, 0.25f, 0.25f, 1.0f))
+					]
+
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.Padding(5)
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString(FString::Printf(TEXT("Updated: %d"), Updated)))
+						.ColorAndOpacity(FLinearColor(0.4f, 0.7f, 1.0f, 1.0f))
+					]
+				]
+			]
+		];
+
+	FSlateApplication::Get().AddWindow(DashboardWindow);
 }
 
 void FEditorInventoryViewerModule::OnView()
@@ -366,14 +494,11 @@ void FEditorInventoryViewerModule::OnWebsite()
 
 void FEditorInventoryViewerModule::OnToggleFeature()
 {
-	bAutomaticUpdate = !bAutomaticUpdate; // Toggle the feature state
-	
-	if (Widget.IsValid()) // Vérifiez que le TSharedPtr est valide
+	bAutomaticUpdate = !bAutomaticUpdate;
+
+	if (Widget.IsValid())
 	{
-		if (bAutomaticUpdate)
-		{
-			Widget->UpdateWindow(bAutomaticUpdate);
-		}
+		Widget->UpdateWindow(bAutomaticUpdate);
 	}
 
 }

@@ -42,6 +42,6 @@ private:
     FString Link_EN_Doc = TEXT("https://docs.google.com/document/d/1w9rfn3r3VupmIiWL5DZvSWVL0J2-YafrEuMUIPjQqdI/edit?tab=t.0");
     FString Link_FR_Doc = TEXT("https://docs.google.com/document/d/1m9_HEgKOQaagL8SrWstJR0DzjOps7KxcTRoHi3myskw/edit?tab=t.0");
     FString Link_Discord = TEXT("https://discord.gg/xb78rVQ7F2");
-    FString Link_Website = TEXT("https://mecanes.github.io/Mecanes.fr");
+    FString Link_Website = TEXT("https://mecanes.netlify.app");
 
 };

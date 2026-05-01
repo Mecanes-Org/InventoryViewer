@@ -22,6 +22,11 @@ void SEditorViewWindow::Construct(const FArguments& InArgs)
 	
 }
 
+SEditorViewWindow::~SEditorViewWindow()
+{
+	UnbindBagEvents();
+}
+
 void SEditorViewWindow::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
@@ -39,87 +44,48 @@ void SEditorViewWindow::Tick(const FGeometry& AllottedGeometry, const double InC
 
 void SEditorViewWindow::ShowAllItems(UAC_ItemsBag* Bag)
 {
+	if (!SWrapBoxRight.IsValid())
+	{
+		return;
+	}
 
-	if (Bag == nullptr) return;
+	SWrapBoxRight->ClearChildren();
+
+	if (!Bag)
+	{
+		SWrapBoxRight->AddSlot()
+		.Padding(10)
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString("No bag selected"))
+			.ColorAndOpacity(FLinearColor::White)
+		];
+
+		return;
+	}
 	
 	AC_ItemsBag = Bag;
-	
-	if (SWrapBoxRight.IsValid())
+
+	if (AC_ItemsBag->ItemsBag.Num() <= 0)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("SWrapBoxRight"));
-		
-		if (ArrayAc_ItemsBag.Num() > 0)
-		{
-			for (FS_Item item : AC_ItemsBag->ItemsBag)
-			{
-				SWrapBoxRight->AddSlot()
-				.Padding(5) // Espacement entre les widgets
-				[
-					CreateButtonItem(item)
-				];
-			}
-		}
-		else
-		{
-			//UE_LOG(LogTemp, Warning, TEXT("ArrayAc_ItemsBag.Num() == 0"));
-			SWrapBoxRight->AddSlot()
-			.Padding(5) // Espacement entre les widgets
-			.HAlign(HAlign_Fill) // Alignement horizontal
-			.VAlign(VAlign_Fill) // Alignement vertical
-			[
+		SWrapBoxRight->AddSlot()
+		.Padding(10)
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString("This bag is empty"))
+			.ColorAndOpacity(FLinearColor::White)
+		];
 
-				SNew(SVerticalBox)
-			   + SVerticalBox::Slot()
-			   .HAlign(HAlign_Fill)
-			   .VAlign(VAlign_Fill) // Permet au slot de remplir la largeur disponible
-			   [
-				   SNew(SOverlay)
-				   + SOverlay::Slot()
-				   .HAlign(HAlign_Fill)
-				   .VAlign(VAlign_Fill) // Permet au slot de remplir la hauteur disponible
-				   [
-					   SNew(SBorder)
-					   .HAlign(HAlign_Fill)
-					   .VAlign(VAlign_Fill)
-					   .BorderBackgroundColor(FLinearColor::Red)
-					   .Padding(5)
-					   [
-						   SNew(SVerticalBox)
-						   + SVerticalBox::Slot()
-						   .HAlign(HAlign_Fill)
-						   .VAlign(VAlign_Fill) // Permet au slot de remplir la largeur disponible
-						   [
-							   SNew(SBox)
-							   .WidthOverride(150)
-							   .HeightOverride(150)
-							   .Padding(0.0f, 0.0f, 0.0f, 5.0f)
-							   .VAlign(VAlign_Fill)
-							   [
-								   SNew(SImage)
-								   .Image(FCoreStyle::Get().GetBrush(TEXT("Icons.Warning")))
-								   .ColorAndOpacity(FLinearColor(1.0f, 0.0f, 0.0f, 0.5f))
-							   ]
-					
-						   ]
-						   + SVerticalBox::Slot()
-							 .HAlign(HAlign_Fill)
-							 .VAlign(VAlign_Bottom) // Permet au slot de remplir la largeur disponible
-							 .AutoHeight()
-						   [
-							   SNew(STextBlock)
-							   .Text(FText::FromString("None"))
-							   .ColorAndOpacity(FLinearColor::White)
-							   .Font(FCoreStyle::Get().GetFontStyle("BoldFont"))
-							   .Justification(ETextJustify::Center)
-						   ]
-					   ]
-				   ]
-			   ]
-
-			
-			];
-		}
-		
+		return;
+	}
+	
+	for (const FS_Item& Item : AC_ItemsBag->ItemsBag)
+	{
+		SWrapBoxRight->AddSlot()
+		.Padding(8)
+		[
+			CreateButtonItem(Item)
+		];
 	}
 
 }
@@ -313,6 +279,7 @@ void SEditorViewWindow::ActorFromComponent()
 				}
 			}
 		}
+		BindBagEvents();
 	}
 }
 
@@ -486,7 +453,7 @@ TSharedRef<SWidget> SEditorViewWindow::CreateButtonItem(FS_Item Item)
 			SNew(SBorder)
 			.HAlign(HAlign_Fill)
 			.VAlign(VAlign_Fill)
-			.BorderBackgroundColor(FLinearColor::White)
+			.BorderBackgroundColor(FLinearColor(0.035f, 0.035f, 0.045f, 1.0f))
 			.Padding(5)
 			[
 				SNew(SVerticalBox)
@@ -513,7 +480,7 @@ TSharedRef<SWidget> SEditorViewWindow::CreateButtonItem(FS_Item Item)
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString(FString::Printf(TEXT("%s"), *Item.Name ))) 
-					.ColorAndOpacity(FLinearColor::White)
+					.ColorAndOpacity(FLinearColor(0.9f, 0.9f, 0.95f, 1.0f))
 					.Font(FCoreStyle::Get().GetFontStyle("BoldFont"))
 					.Justification(ETextJustify::Center)
 				]
@@ -528,13 +495,13 @@ TSharedRef<SWidget> SEditorViewWindow::CreateButtonItem(FS_Item Item)
 			SNew(SBorder)
 			.VAlign(VAlign_Fill)
 			.HAlign(HAlign_Fill)
-			.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))
+			.BorderBackgroundColor(FLinearColor(0.1f, 0.25f, 0.9f, 1.0f))
 			.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")) // Utilisation d'une brosse blanche par défaut
 			.Padding(4.0f, 2.0f)
 			[
 				SNew(STextBlock)
 				.Text(FText::FromString(FString::Printf(TEXT("%i"), Item.Quantity )))
-				.ColorAndOpacity(FLinearColor::Black)
+				.ColorAndOpacity(FLinearColor(0.9f, 0.9f, 0.95f, 1.0f))
 			]
 		];
 		
@@ -543,25 +510,89 @@ TSharedRef<SWidget> SEditorViewWindow::CreateButtonItem(FS_Item Item)
 
 void SEditorViewWindow::UpdateItemOfBag(UAC_ItemsBag* bag)
 {
-	SWrapBoxRight->ClearChildren();
-
 	ShowAllItems(bag);
 }
 
 void SEditorViewWindow::UpdateWindow(bool bAutoUpdate)
 {
 	bAutomaticUpdate = bAutoUpdate;
-	
+
 	if (bAutomaticUpdate)
 	{
+		TimerInterval = 0.25f;
+		TimeSinceLastTick = 0.0f;
 		StartTimer();
 	}
-	
-	//UE_LOG(LogTemp, Warning, TEXT("XXXXXXXX"));
 }
 
 void SEditorViewWindow::StartTimer()
 {	
-	GameStart();
-	//UE_LOG(LogTemp, Warning, TEXT("Start Timer"));
+	ArrayAc_ItemsBag.Empty();
+
+	if (IsValidWorld(GetWorld()))
+	{
+		ActorFromComponent();
+	}
+
+	if (AC_ItemsBag)
+	{
+		ShowAllItems(AC_ItemsBag);
+	}
+}
+
+void SEditorViewWindow::BindBagEvents()
+{
+	for (UAC_ItemsBag* Bag : ArrayAc_ItemsBag)
+	{
+		if (!Bag)
+		{
+			continue;
+		}
+
+		Bag->OnInventoryChangedNative.RemoveAll(this);
+		Bag->OnInventoryChangedNative.AddRaw(
+			this,
+			&SEditorViewWindow::OnBagInventoryChanged
+		);
+	}
+}
+
+void SEditorViewWindow::UnbindBagEvents()
+{
+	for (UAC_ItemsBag* Bag : ArrayAc_ItemsBag)
+	{
+		if (Bag)
+		{
+			Bag->OnInventoryChangedNative.RemoveAll(this);
+		}
+	}
+}
+
+void SEditorViewWindow::OnBagInventoryChanged(UAC_ItemsBag* Bag, EProInventoryChangeType ChangeType, FS_Item Item)
+{
+	if (!Bag)
+	{
+		return;
+	}
+
+	// Refresh uniquement si le sac modifié est celui affiché
+	if (Bag == AC_ItemsBag)
+	{
+		ShowAllItems(Bag);
+	}
+
+	// Refresh aussi la liste de gauche pour mettre à jour le nombre d'items
+	if (ScrollBoxContentLeft.IsValid())
+	{
+		ScrollBoxContentLeft->ClearChildren();
+
+		for (UAC_ItemsBag* CurrentBag : ArrayAc_ItemsBag)
+		{
+			ScrollBoxContentLeft->AddSlot()
+			.Padding(5)
+			[
+				CreateButtonBag(CurrentBag)
+			];
+		}
+	}
 }

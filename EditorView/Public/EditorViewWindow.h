@@ -28,6 +28,7 @@ public:
 
 	/** Constructeur de la fenêtre */
 	void Construct(const FArguments& InArgs);
+	~SEditorViewWindow();
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
@@ -55,6 +56,16 @@ public:
 	void StartTimer();
 
 private:
+
+	void BindBagEvents();
+	void UnbindBagEvents();
+
+	void OnBagInventoryChanged(
+		UAC_ItemsBag* Bag,
+		EProInventoryChangeType ChangeType,
+		FS_Item Item
+	);
+
 	/** Timer interval in seconds */
 	float TimerInterval = 5.0f;
 	/** Accumulated time since the last timer trigger */
