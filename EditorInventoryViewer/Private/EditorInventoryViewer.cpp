@@ -22,6 +22,16 @@
 #include "EngineUtils.h"
 #include "Engine/World.h"
 
+// DASHBOARD
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Layout/SWidgetSwitcher.h"
+#include "Containers/Set.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Input/SButton.h"
+
 #define LOCTEXT_NAMESPACE "FEditorInventoryViewerModule"
 // Vous devez enregistrer cet événement
 
@@ -313,137 +323,764 @@ void FEditorInventoryViewerModule::AddMenus(FMenuBuilder& MenuBuilder)
 	MenuBuilder.EndSection();
 }
 
-
-void FEditorInventoryViewerModule::OnDashboard()
+// CUSTOM CLASS POUR ON DASHBOARD
+class SInventoryDashboardWindow : public SCompoundWidget
 {
-	int32 TotalBags = 0;
-	int32 TotalItems = 0;
-	int32 TotalQuantity = 0;
-	int32 Added = 0;
-	int32 Removed = 0;
-	int32 Updated = 0;
+public:
+	SLATE_BEGIN_ARGS(SInventoryDashboardWindow) {}
+	SLATE_END_ARGS()
 
-	if (GEditor && GEditor->PlayWorld)
+	~SInventoryDashboardWindow()
 	{
-		for (TActorIterator<AActor> ActorItr(GEditor->PlayWorld); ActorItr; ++ActorItr)
-		{
-			AActor* Actor = *ActorItr;
-			if (!Actor)
-			{
-				continue;
-			}
-
-			TArray<UAC_ItemsBag*> Bags = UBPFL_ProInventorySystem::GetAllBags(Actor);
-
-			for (UAC_ItemsBag* Bag : Bags)
-			{
-				if (!Bag)
-				{
-					continue;
-				}
-
-				TotalBags++;
-				TotalItems += Bag->ItemsBag.Num();
-
-				Added += Bag->DashboardAddedCount;
-				Removed += Bag->DashboardRemovedCount;
-				Updated += Bag->DashboardUpdatedCount;
-
-				for (const FS_Item& Item : Bag->ItemsBag)
-				{
-					TotalQuantity += Item.Quantity;
-				}
-			}
-		}
+		UnbindBagEvents();
 	}
 
-	TSharedRef<SWindow> DashboardWindow = SNew(SWindow)
-		.Title(FText::FromString("Inventory Dashboard"))
-		.ClientSize(FVector2D(600, 360))
-		.SupportsMaximize(false)
-		.SupportsMinimize(false)
+	void Construct(const FArguments& InArgs)
+	{
+		ChildSlot
 		[
 			SNew(SBorder)
-			.Padding(20)
-			.BorderBackgroundColor(FLinearColor(0.02f, 0.02f, 0.025f, 1.0f))
+			.Padding(16)
+			.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+			.BorderBackgroundColor(FLinearColor(0.025f, 0.025f, 0.03f, 1.0f))
+			[
+				SNew(SScrollBox)
+
+				+ SScrollBox::Slot()
+				[
+					SAssignNew(ContentBox, SVerticalBox)
+				]
+			]
+		];
+
+		BindBagEvents();
+		RefreshDashboard();
+	}
+
+private:
+	struct FBagDashboardData
+	{
+		UAC_ItemsBag* Bag = nullptr;
+		FString BagName = TEXT("Unknown");
+		FString OwnerName = TEXT("Unknown");
+
+		int32 DistinctItems = 0;
+		int32 TotalQuantity = 0;
+		int32 Capacity = 0;
+
+		float FillPercent = 0.0f;
+
+		int32 AddedOps = 0;
+		int32 RemovedOps = 0;
+		int32 UpdatedOps = 0;
+		int32 TotalActivity = 0;
+
+		bool bIsCurrentBag = false;
+	};
+
+	struct FItemDashboardData
+	{
+		FString Name = TEXT("Unknown");
+		int32 TotalQuantity = 0;
+		int32 StackCount = 0;
+	};
+
+private:
+	TSharedPtr<SVerticalBox> ContentBox;
+
+private:
+	TSharedRef<SWidget> MakeMetricCard(
+		const FString& Title,
+		const FString& Value,
+		const FString& Subtitle,
+		const FLinearColor& Accent
+	)
+	{
+		return SNew(SBorder)
+			.Padding(12)
+			.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+			.BorderBackgroundColor(FLinearColor(0.07f, 0.07f, 0.09f, 1.0f))
 			[
 				SNew(SVerticalBox)
 
 				+ SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding(0, 0, 0, 20)
+				.Padding(0, 0, 0, 6)
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString("Inventory Dashboard"))
+					.Text(FText::FromString(Title))
+					.ColorAndOpacity(Accent)
 					.Font(FCoreStyle::Get().GetFontStyle("BoldFont"))
-					.ColorAndOpacity(FLinearColor::White)
 				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0, 0, 0, 4)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(Value))
+					.ColorAndOpacity(FLinearColor::White)
+					.Font(FCoreStyle::Get().GetFontStyle("BoldFont"))
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(Subtitle))
+					.ColorAndOpacity(FLinearColor(0.68f, 0.68f, 0.68f, 1.0f))
+				]
+			];
+	}
+
+	TSharedRef<SWidget> MakeInfoRow(
+		const FString& Label,
+		const FString& Value,
+		const FLinearColor& ValueColor = FLinearColor::White
+	)
+	{
+		return SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString(Label))
+				.ColorAndOpacity(FLinearColor(0.75f, 0.75f, 0.75f, 1.0f))
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString(Value))
+				.ColorAndOpacity(ValueColor)
+				.Font(FCoreStyle::Get().GetFontStyle("BoldFont"))
+			];
+	}
+
+	TSharedRef<SWidget> MakePanel(const FString& Title, TSharedRef<SWidget> Content)
+	{
+		return SNew(SBorder)
+			.Padding(14)
+			.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+			.BorderBackgroundColor(FLinearColor(0.05f, 0.05f, 0.06f, 1.0f))
+			[
+				SNew(SVerticalBox)
 
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				.Padding(0, 0, 0, 10)
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString(FString::Printf(TEXT("Bags detected: %d"), TotalBags)))
-					.ColorAndOpacity(FLinearColor::White)
+					.Text(FText::FromString(Title))
+					.ColorAndOpacity(FLinearColor(0.90f, 0.90f, 1.0f, 1.0f))
+					.Font(FCoreStyle::Get().GetFontStyle("BoldFont"))
 				]
 
 				+ SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding(0, 0, 0, 10)
 				[
-					SNew(STextBlock)
-					.Text(FText::FromString(FString::Printf(TEXT("Unique items: %d"), TotalItems)))
-					.ColorAndOpacity(FLinearColor::White)
+					Content
 				]
+			];
+	}
+
+	TArray<UAC_ItemsBag*> GetLiveBags()
+	{
+		TArray<UAC_ItemsBag*> Result;
+
+		if (!GEditor || !GEditor->PlayWorld)
+		{
+			return Result;
+		}
+
+		for (TActorIterator<AActor> ActorItr(GEditor->PlayWorld); ActorItr; ++ActorItr)
+		{
+			AActor* Actor = *ActorItr;
+
+			if (!Actor)
+			{
+				continue;
+			}
+
+			const TArray<UAC_ItemsBag*> FoundBags = UBPFL_ProInventorySystem::GetAllBags(Actor);
+
+			for (UAC_ItemsBag* Bag : FoundBags)
+			{
+				if (Bag)
+				{
+					Result.AddUnique(Bag);
+				}
+			}
+		}
+
+		return Result;
+	}
+
+	void RefreshDashboard()
+	{
+		if (!ContentBox.IsValid())
+		{
+			return;
+		}
+
+		ContentBox->ClearChildren();
+
+		TArray<FBagDashboardData> BagStats;
+		TArray<FItemDashboardData> ItemStats;
+
+		TMap<FString, int32> ItemQuantityMap;
+		TMap<FString, int32> ItemStackMap;
+
+		int32 TotalBags = 0;
+		int32 EmptyBags = 0;
+		int32 FullBags = 0;
+		int32 CurrentBags = 0;
+
+		int32 TotalDistinctItems = 0;
+		int32 TotalQuantity = 0;
+		int32 TotalCapacity = 0;
+
+		int32 TotalAddedOps = 0;
+		int32 TotalRemovedOps = 0;
+		int32 TotalUpdatedOps = 0;
+
+		const TArray<UAC_ItemsBag*> Bags = GetLiveBags();
+
+		for (UAC_ItemsBag* Bag : Bags)
+		{
+			if (!Bag)
+			{
+				continue;
+			}
+
+			FBagDashboardData Data;
+
+			Data.Bag = Bag;
+			Data.BagName = Bag->getBagName().IsEmpty() ? TEXT("Unnamed Bag") : Bag->getBagName();
+			Data.OwnerName = Bag->GetOwner() ? Bag->GetOwner()->GetName() : TEXT("Unknown Owner");
+
+			Data.DistinctItems = Bag->ItemsBag.Num();
+			Data.Capacity = FMath::Max(Bag->getBagCapacity(), 0);
+
+			Data.AddedOps = Bag->DashboardAddedCount;
+			Data.RemovedOps = Bag->DashboardRemovedCount;
+			Data.UpdatedOps = Bag->DashboardUpdatedCount;
+			Data.TotalActivity = Data.AddedOps + Data.RemovedOps + Data.UpdatedOps;
+
+			Data.bIsCurrentBag = Bag->getIsCurrentBag();
+
+			for (const FS_Item& Item : Bag->ItemsBag)
+			{
+				Data.TotalQuantity += Item.Quantity;
+
+				const FString ItemName = Item.Name.IsEmpty() ? TEXT("Unnamed Item") : Item.Name;
+
+				ItemQuantityMap.FindOrAdd(ItemName) += Item.Quantity;
+				ItemStackMap.FindOrAdd(ItemName) += 1;
+			}
+
+			Data.FillPercent = Data.Capacity > 0
+				? static_cast<float>(Data.DistinctItems) / static_cast<float>(Data.Capacity) * 100.0f
+				: 0.0f;
+
+			if (Data.DistinctItems == 0)
+			{
+				EmptyBags++;
+			}
+
+			if (Data.Capacity > 0 && Data.DistinctItems >= Data.Capacity)
+			{
+				FullBags++;
+			}
+
+			if (Data.bIsCurrentBag)
+			{
+				CurrentBags++;
+			}
+
+			TotalBags++;
+			TotalDistinctItems += Data.DistinctItems;
+			TotalQuantity += Data.TotalQuantity;
+			TotalCapacity += Data.Capacity;
+
+			TotalAddedOps += Data.AddedOps;
+			TotalRemovedOps += Data.RemovedOps;
+			TotalUpdatedOps += Data.UpdatedOps;
+
+			BagStats.Add(Data);
+		}
+
+		for (const TPair<FString, int32>& Pair : ItemQuantityMap)
+		{
+			FItemDashboardData ItemData;
+			ItemData.Name = Pair.Key;
+			ItemData.TotalQuantity = Pair.Value;
+			ItemData.StackCount = ItemStackMap.FindRef(Pair.Key);
+
+			ItemStats.Add(ItemData);
+		}
+
+		BagStats.Sort([](const FBagDashboardData& A, const FBagDashboardData& B)
+		{
+			return A.TotalQuantity > B.TotalQuantity;
+		});
+
+		ItemStats.Sort([](const FItemDashboardData& A, const FItemDashboardData& B)
+		{
+			return A.TotalQuantity > B.TotalQuantity;
+		});
+
+		const float GlobalFillPercent = TotalCapacity > 0
+			? static_cast<float>(TotalDistinctItems) / static_cast<float>(TotalCapacity) * 100.0f
+			: 0.0f;
+
+		const float AvgItemsPerBag = TotalBags > 0
+			? static_cast<float>(TotalDistinctItems) / static_cast<float>(TotalBags)
+			: 0.0f;
+
+		const float AvgQuantityPerBag = TotalBags > 0
+			? static_cast<float>(TotalQuantity) / static_cast<float>(TotalBags)
+			: 0.0f;
+
+		const FBagDashboardData* MostLoadedBag = BagStats.Num() > 0 ? &BagStats[0] : nullptr;
+
+		const FBagDashboardData* MostActiveBag = nullptr;
+
+		for (const FBagDashboardData& BagData : BagStats)
+		{
+			if (!MostActiveBag || BagData.TotalActivity > MostActiveBag->TotalActivity)
+			{
+				MostActiveBag = &BagData;
+			}
+		}
+
+		ContentBox->AddSlot()
+		.AutoHeight()
+		.Padding(0, 0, 0, 14)
+		[
+			SNew(SBorder)
+			.Padding(14)
+			.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+			.BorderBackgroundColor(FLinearColor(0.045f, 0.045f, 0.055f, 1.0f))
+			[
+				SNew(SVerticalBox)
 
 				+ SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding(0, 0, 0, 20)
-				[
-					SNew(STextBlock)
-					.Text(FText::FromString(FString::Printf(TEXT("Total quantity: %d"), TotalQuantity)))
-					.ColorAndOpacity(FLinearColor::White)
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
+				.Padding(0, 0, 0, 8)
 				[
 					SNew(SHorizontalBox)
 
 					+ SHorizontalBox::Slot()
 					.FillWidth(1.0f)
-					.Padding(5)
+					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text(FText::FromString(FString::Printf(TEXT("Added: %d"), Added)))
-						.ColorAndOpacity(FLinearColor(0.2f, 1.0f, 0.4f, 1.0f))
+						.Text(FText::FromString("Dashboard"))
+						.ColorAndOpacity(FLinearColor::White)
+						.Font(FCoreStyle::Get().GetFontStyle("BoldFont"))
 					]
 
 					+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.Padding(5)
+					.AutoWidth()
 					[
-						SNew(STextBlock)
-						.Text(FText::FromString(FString::Printf(TEXT("Removed: %d"), Removed)))
-						.ColorAndOpacity(FLinearColor(1.0f, 0.25f, 0.25f, 1.0f))
+						SNew(SButton)
+						.Text(FText::FromString("Refresh / Rebind"))
+						.ToolTipText(FText::FromString("Refresh dashboard and rebind delegates to all current bags."))
+						.OnClicked_Lambda([this]()
+						{
+							BindBagEvents();
+							RefreshDashboard();
+							return FReply::Handled();
+						})
 					]
+				]
 
-					+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.Padding(5)
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString(FString::Printf(TEXT("Updated: %d"), Updated)))
-						.ColorAndOpacity(FLinearColor(0.4f, 0.7f, 1.0f, 1.0f))
-					]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Updates only when inventory delegates are fired. No Tick refresh."))
+					.ColorAndOpacity(FLinearColor(0.75f, 0.75f, 0.80f, 1.0f))
 				]
 			]
 		];
 
+		TSharedRef<SUniformGridPanel> MetricsGrid = SNew(SUniformGridPanel)
+			.SlotPadding(8.0f);
+
+		MetricsGrid->AddSlot(0, 0)
+		[
+			MakeMetricCard(
+				TEXT("Bags"),
+				FString::Printf(TEXT("%d"), TotalBags),
+				FString::Printf(TEXT("%d current / %d empty"), CurrentBags, EmptyBags),
+				FLinearColor(0.45f, 0.85f, 1.0f, 1.0f)
+			)
+		];
+
+		MetricsGrid->AddSlot(1, 0)
+		[
+			MakeMetricCard(
+				TEXT("Distinct Items"),
+				FString::Printf(TEXT("%d"), TotalDistinctItems),
+				TEXT("Total occupied item slots"),
+				FLinearColor(0.70f, 0.95f, 0.45f, 1.0f)
+			)
+		];
+
+		MetricsGrid->AddSlot(2, 0)
+		[
+			MakeMetricCard(
+				TEXT("Total Quantity"),
+				FString::Printf(TEXT("%d"), TotalQuantity),
+				TEXT("All quantities combined"),
+				FLinearColor(1.0f, 0.75f, 0.35f, 1.0f)
+			)
+		];
+
+		MetricsGrid->AddSlot(3, 0)
+		[
+			MakeMetricCard(
+				TEXT("Capacity Usage"),
+				FString::Printf(TEXT("%d / %d"), TotalDistinctItems, TotalCapacity),
+				FString::Printf(TEXT("%.0f%% global fill"), GlobalFillPercent),
+				FLinearColor(0.95f, 0.45f, 0.65f, 1.0f)
+			)
+		];
+
+		MetricsGrid->AddSlot(0, 1)
+		[
+			MakeMetricCard(
+				TEXT("Added Ops"),
+				FString::Printf(TEXT("%d"), TotalAddedOps),
+				TEXT("Tracked add operations"),
+				FLinearColor(0.35f, 0.85f, 0.45f, 1.0f)
+			)
+		];
+
+		MetricsGrid->AddSlot(1, 1)
+		[
+			MakeMetricCard(
+				TEXT("Removed Ops"),
+				FString::Printf(TEXT("%d"), TotalRemovedOps),
+				TEXT("Tracked remove operations"),
+				FLinearColor(0.95f, 0.35f, 0.35f, 1.0f)
+			)
+		];
+
+		MetricsGrid->AddSlot(2, 1)
+		[
+			MakeMetricCard(
+				TEXT("Updated Ops"),
+				FString::Printf(TEXT("%d"), TotalUpdatedOps),
+				TEXT("Tracked update operations"),
+				FLinearColor(0.95f, 0.80f, 0.35f, 1.0f)
+			)
+		];
+
+		MetricsGrid->AddSlot(3, 1)
+		[
+			MakeMetricCard(
+				TEXT("Full Bags"),
+				FString::Printf(TEXT("%d"), FullBags),
+				TEXT("Bags at max slot capacity"),
+				FLinearColor(0.85f, 0.45f, 1.0f, 1.0f)
+			)
+		];
+
+		ContentBox->AddSlot()
+		.AutoHeight()
+		.Padding(0, 0, 0, 14)
+		[
+			MetricsGrid
+		];
+
+		TSharedRef<SVerticalBox> InsightsBox = SNew(SVerticalBox);
+
+		InsightsBox->AddSlot()
+		.AutoHeight()
+		.Padding(0, 0, 0, 8)
+		[
+			MakeInfoRow(
+				TEXT("Most loaded bag"),
+				MostLoadedBag
+					? FString::Printf(TEXT("%s (%d qty)"), *MostLoadedBag->BagName, MostLoadedBag->TotalQuantity)
+					: TEXT("N/A"),
+				FLinearColor(0.45f, 0.85f, 1.0f, 1.0f)
+			)
+		];
+
+		InsightsBox->AddSlot()
+		.AutoHeight()
+		.Padding(0, 0, 0, 8)
+		[
+			MakeInfoRow(
+				TEXT("Most active bag"),
+				MostActiveBag
+					? FString::Printf(TEXT("%s (%d ops)"), *MostActiveBag->BagName, MostActiveBag->TotalActivity)
+					: TEXT("N/A"),
+				FLinearColor(1.0f, 0.75f, 0.35f, 1.0f)
+			)
+		];
+
+		InsightsBox->AddSlot()
+		.AutoHeight()
+		.Padding(0, 0, 0, 8)
+		[
+			MakeInfoRow(
+				TEXT("Global fill"),
+				FString::Printf(TEXT("%.0f%%"), GlobalFillPercent),
+				FLinearColor(0.75f, 0.95f, 0.55f, 1.0f)
+			)
+		];
+
+		InsightsBox->AddSlot()
+		.AutoHeight()
+		.Padding(0, 0, 0, 8)
+		[
+			MakeInfoRow(
+				TEXT("Average stacks / bag"),
+				FString::Printf(TEXT("%.1f"), AvgItemsPerBag)
+			)
+		];
+
+		InsightsBox->AddSlot()
+		.AutoHeight()
+		[
+			MakeInfoRow(
+				TEXT("Average quantity / bag"),
+				FString::Printf(TEXT("%.1f"), AvgQuantityPerBag)
+			)
+		];
+
+		ContentBox->AddSlot()
+		.AutoHeight()
+		.Padding(0, 0, 0, 14)
+		[
+			MakePanel(TEXT("Quick Insights"), InsightsBox)
+		];
+
+		TSharedRef<SVerticalBox> TopBagsBox = SNew(SVerticalBox);
+
+		if (BagStats.Num() <= 0)
+		{
+			TopBagsBox->AddSlot()
+			.AutoHeight()
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString("No bags detected. Start PIE and make sure your actors own UAC_ItemsBag components."))
+				.ColorAndOpacity(FLinearColor(0.8f, 0.8f, 0.8f, 1.0f))
+			];
+		}
+		else
+		{
+			const int32 MaxDisplayedBags = FMath::Min(5, BagStats.Num());
+
+			for (int32 i = 0; i < MaxDisplayedBags; ++i)
+			{
+				const FBagDashboardData& Bag = BagStats[i];
+
+				TopBagsBox->AddSlot()
+				.AutoHeight()
+				.Padding(0, 0, 0, 8)
+				[
+					SNew(SBorder)
+					.Padding(10)
+					.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+					.BorderBackgroundColor(FLinearColor(0.08f, 0.08f, 0.10f, 1.0f))
+					[
+						SNew(SVerticalBox)
+
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							MakeInfoRow(
+								FString::Printf(TEXT("#%d  %s"), i + 1, *Bag.BagName),
+								FString::Printf(TEXT("%d qty"), Bag.TotalQuantity),
+								FLinearColor(0.45f, 0.85f, 1.0f, 1.0f)
+							)
+						]
+
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, 4, 0, 0)
+						[
+							MakeInfoRow(TEXT("Owner"), Bag.OwnerName)
+						]
+
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, 2, 0, 0)
+						[
+							MakeInfoRow(
+								TEXT("Slots"),
+								FString::Printf(TEXT("%d / %d (%.0f%%)"), Bag.DistinctItems, Bag.Capacity, Bag.FillPercent),
+								FLinearColor(0.75f, 0.95f, 0.55f, 1.0f)
+							)
+						]
+
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, 2, 0, 0)
+						[
+							MakeInfoRow(
+								TEXT("Activity"),
+								FString::Printf(TEXT("%d ops"), Bag.TotalActivity),
+								FLinearColor(1.0f, 0.75f, 0.35f, 1.0f)
+							)
+						]
+					]
+				];
+			}
+		}
+
+		TSharedRef<SVerticalBox> TopItemsBox = SNew(SVerticalBox);
+
+		if (ItemStats.Num() <= 0)
+		{
+			TopItemsBox->AddSlot()
+			.AutoHeight()
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString("No items found."))
+				.ColorAndOpacity(FLinearColor(0.8f, 0.8f, 0.8f, 1.0f))
+			];
+		}
+		else
+		{
+			const int32 MaxDisplayedItems = FMath::Min(5, ItemStats.Num());
+
+			for (int32 i = 0; i < MaxDisplayedItems; ++i)
+			{
+				const FItemDashboardData& Item = ItemStats[i];
+
+				TopItemsBox->AddSlot()
+				.AutoHeight()
+				.Padding(0, 0, 0, 8)
+				[
+					SNew(SBorder)
+					.Padding(10)
+					.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+					.BorderBackgroundColor(FLinearColor(0.08f, 0.08f, 0.10f, 1.0f))
+					[
+						SNew(SVerticalBox)
+
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							MakeInfoRow(
+								FString::Printf(TEXT("#%d  %s"), i + 1, *Item.Name),
+								FString::Printf(TEXT("%d qty"), Item.TotalQuantity),
+								FLinearColor(0.55f, 0.85f, 1.0f, 1.0f)
+							)
+						]
+
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0, 4, 0, 0)
+						[
+							MakeInfoRow(
+								TEXT("Stacks"),
+								FString::Printf(TEXT("%d"), Item.StackCount)
+							)
+						]
+					]
+				];
+			}
+		}
+
+		ContentBox->AddSlot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.Padding(0, 0, 7, 0)
+			[
+				MakePanel(TEXT("Top Bags"), TopBagsBox)
+			]
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.Padding(7, 0, 0, 0)
+			[
+				MakePanel(TEXT("Top Items"), TopItemsBox)
+			]
+		];
+	}
+
+	TArray<TWeakObjectPtr<UAC_ItemsBag>> BoundBags;
+
+	void BindBagEvents()
+	{
+		UnbindBagEvents();
+
+		const TArray<UAC_ItemsBag*> Bags = GetLiveBags();
+
+		for (UAC_ItemsBag* Bag : Bags)
+		{
+			if (!Bag)
+			{
+				continue;
+			}
+
+			Bag->OnInventoryChangedNative.RemoveAll(this);
+
+			Bag->OnInventoryChangedNative.AddRaw(
+				this,
+				&SInventoryDashboardWindow::OnInventoryChanged
+			);
+
+			BoundBags.Add(Bag);
+		}
+	}
+
+	void UnbindBagEvents()
+	{
+		for (TWeakObjectPtr<UAC_ItemsBag> WeakBag : BoundBags)
+		{
+			if (WeakBag.IsValid())
+			{
+				WeakBag->OnInventoryChangedNative.RemoveAll(this);
+			}
+		}
+
+		BoundBags.Empty();
+	}
+
+	void OnInventoryChanged(
+		UAC_ItemsBag* Bag,
+		EProInventoryChangeType ChangeType,
+		FS_Item Item
+	)
+	{
+		RefreshDashboard();
+	}
+};
+
+// FIN CLASS CUSTOM
+
+void FEditorInventoryViewerModule::OnDashboard()
+{
+	TSharedRef<SWindow> DashboardWindow = SNew(SWindow)
+		.Title(FText::FromString("Inventory Dashboard"))
+		.ClientSize(FVector2D(1180, 760))
+		.MinHeight(600)
+		.MinWidth(800)
+		.MaxHeight(800)
+		.MaxWidth(1280)
+		.SupportsMaximize(true)
+		.SupportsMinimize(true)
+		[
+			SNew(SInventoryDashboardWindow)
+		];
+
 	FSlateApplication::Get().AddWindow(DashboardWindow);
 }
-
 void FEditorInventoryViewerModule::OnView()
 {
 	//FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("View", "It will be available soon !"));
@@ -507,6 +1144,7 @@ bool FEditorInventoryViewerModule::IsFeatureEnabled() const
 {
 	return bAutomaticUpdate;
 }
+
 
 
 #undef LOCTEXT_NAMESPACE
