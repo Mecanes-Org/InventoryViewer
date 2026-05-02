@@ -239,48 +239,41 @@ bool SEditorViewWindow::IsValidWorld(UWorld* World)
 
 void SEditorViewWindow::ActorFromComponent()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("ActorFromComponent"));
-	
+	ArrayAc_ItemsBag.Empty();
+
 	UWorld* ActiveWorld = CurrentWorld;
 
-
-	// Vérifiez si le monde est valide avant de l'utiliser
-	if (ActiveWorld)
+	if (!ActiveWorld)
 	{
-		for (TActorIterator<AActor> ActorItr(ActiveWorld); ActorItr; ++ActorItr)
+		return;
+	}
+
+	for (TActorIterator<AActor> ActorItr(ActiveWorld); ActorItr; ++ActorItr)
+	{
+		AActor* CurrentActor = *ActorItr;
+
+		if (!CurrentActor)
 		{
-			AActor* CurrentActor = *ActorItr;
-			if (!CurrentActor) continue;
+			continue;
+		}
 
-			// Vérifiez si le composant UAC_ItemsBag existe pour cet acteur
-			AC_ItemsBag = CurrentActor->FindComponentByClass<UAC_ItemsBag>();
-			
-			if (AC_ItemsBag)
+		TArray<UAC_ItemsBag*> FoundBags = UBPFL_ProInventorySystem::GetAllBags(CurrentActor);
+
+		for (UAC_ItemsBag* Bag : FoundBags)
+		{
+			if (Bag)
 			{
-				// Obtenez le propriétaire (si nécessaire)
-				AActor* CurrentOwner = AC_ItemsBag->GetOwner();
-
-				if (CurrentOwner)
-				{
-					// Vérifiez de nouveau pour le composant UAC_ItemsBag dans l'acteur propriétaire
-					AC_ItemsBag = CurrentOwner->FindComponentByClass<UAC_ItemsBag>();
-
-					// Appelez une fonction personnalisée si au moins un sac est présent
-					if (UBPFL_ProInventorySystem::GetNumberOfBags(CurrentOwner) > 0)
-					{
-						// Obtenez tous les sacs de l'acteur si nécessaire
-						ArrayAc_ItemsBag = UBPFL_ProInventorySystem::GetAllBags(CurrentOwner);
-
-						if (ArrayAc_ItemsBag.Num() == 1)
-						{
-							AC_ItemsBag = ArrayAc_ItemsBag[0];
-						}
-					}
-				}
+				ArrayAc_ItemsBag.AddUnique(Bag);
 			}
 		}
-		BindBagEvents();
 	}
+
+	if (!AC_ItemsBag && ArrayAc_ItemsBag.Num() > 0)
+	{
+		AC_ItemsBag = ArrayAc_ItemsBag[0];
+	}
+
+	BindBagEvents();
 }
 
 FSlateBrush* SEditorViewWindow::CreateBrushFromTexture(UTexture2D* Texture)
@@ -527,16 +520,57 @@ void SEditorViewWindow::UpdateWindow(bool bAutoUpdate)
 
 void SEditorViewWindow::StartTimer()
 {	
-	ArrayAc_ItemsBag.Empty();
-
 	if (IsValidWorld(GetWorld()))
 	{
 		ActorFromComponent();
+		RefreshBagList();
 	}
 
 	if (AC_ItemsBag)
 	{
 		ShowAllItems(AC_ItemsBag);
+	}
+	else if (ArrayAc_ItemsBag.Num() > 0)
+	{
+		AC_ItemsBag = ArrayAc_ItemsBag[0];
+		ShowAllItems(AC_ItemsBag);
+	}
+}
+
+void SEditorViewWindow::RefreshBagList()
+{
+	if (!ScrollBoxContentLeft.IsValid())
+	{
+		return;
+	}
+
+	ScrollBoxContentLeft->ClearChildren();
+
+	if (ArrayAc_ItemsBag.Num() <= 0)
+	{
+		ScrollBoxContentLeft->AddSlot()
+		.Padding(5)
+		[
+			CreateButtonBag(nullptr)
+		];
+
+		return;
+	}
+
+	for (UAC_ItemsBag* Bag : ArrayAc_ItemsBag)
+	{
+		if (!Bag)
+		{
+			continue;
+		}
+
+		ScrollBoxContentLeft->AddSlot()
+		.Padding(5)
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		[
+			CreateButtonBag(Bag)
+		];
 	}
 }
 
@@ -575,24 +609,10 @@ void SEditorViewWindow::OnBagInventoryChanged(UAC_ItemsBag* Bag, EProInventoryCh
 		return;
 	}
 
-	// Refresh uniquement si le sac modifié est celui affiché
 	if (Bag == AC_ItemsBag)
 	{
 		ShowAllItems(Bag);
 	}
 
-	// Refresh aussi la liste de gauche pour mettre à jour le nombre d'items
-	if (ScrollBoxContentLeft.IsValid())
-	{
-		ScrollBoxContentLeft->ClearChildren();
-
-		for (UAC_ItemsBag* CurrentBag : ArrayAc_ItemsBag)
-		{
-			ScrollBoxContentLeft->AddSlot()
-			.Padding(5)
-			[
-				CreateButtonBag(CurrentBag)
-			];
-		}
-	}
+	RefreshBagList();
 }

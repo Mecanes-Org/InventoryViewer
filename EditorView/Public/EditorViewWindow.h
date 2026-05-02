@@ -55,6 +55,8 @@ public:
 	//TIMER
 	void StartTimer();
 
+	void RefreshBagList();
+
 private:
 
 	void BindBagEvents();
